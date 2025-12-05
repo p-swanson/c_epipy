@@ -1,0 +1,48 @@
+
+wget https://github.com/EPISOLrelease/EPISOL/raw/refs/heads/main/src/fftw/fftw-3.3.8.tar.gz
+tar -xzf fftw-3.3.8.tar.gz
+cd fftw-3.3.8/
+./configure --enable-shared --prefix=$HOME/episol/fftw-3.3.8
+make
+make install
+################ IN EPISOL
+## IF DOWNLOADING 
+wget https://github.com/EPISOLrelease/EPISOL/raw/refs/heads/main/src/kernel/release.tar.gz
+tar -xzf release.tar.gz
+cd release/
+#################
+./configure --with-fftw=$HOME/episol/fftw-3.3.8
+###################
+
+##################
+# THE PYTHON EPISOL-MASTER
+##################
+
+#include <pybind11/pybind11.h>
+
+#include "episol.cpp"
+
+namespace py = pybind11;
+
+int call_episol(char * args){
+    StringNS::string sl[200];
+    int nw = analysis_word_line(args, sl, 200, true);
+    char * sz[200];
+    for (int i=0; i<nw&&i<=200; i++) sz[i] = sl[i].text;
+
+    return main(nw, sz);
+}
+
+PYBIND11_MODULE(call_episol, m, py::mod_gil_not_used()) {
+    m.doc() = "EPISOL"; // optional module docstring
+    m.def("call_episol", &call_episol, "Python entrypoint for EPISOL",
+          py::arg("episol -h"));
+}
+##############
+
+
+#############
+#  COMPILE
+#############
+c++ -O3 -w -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) call_episol.cpp -o call_episol$(python3-config --extension-suffix) -I$HOME/fftw-3.3.10/include -L$HOME/fftw-3.3.10/lib -lfftw3 -lpthread -lz
+
